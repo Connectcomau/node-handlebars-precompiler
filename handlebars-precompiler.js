@@ -15,7 +15,6 @@ exports.do = function(opts) {
     }
 
     opts.templates.forEach(function(template) {
-      fs.statSync(template);
       try {
         fs.statSync(template);
       } catch (err) {
