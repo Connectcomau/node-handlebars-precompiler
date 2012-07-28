@@ -1,4 +1,4 @@
-# Death to Redundant View Templates!
+# Precompile Handlebars Template directories
 
 Get the package: ```npm install handlebars-precompiler```
 

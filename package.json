@@ -1,17 +1,17 @@
 {
   "name": "handlebars-precompiler",
   "description": "Handlebars precompiler node module",
-  "version": "1.0.0beta",
-  "homepage": "http://github.com/jwietelmann/node-handlebars-precompiler",
+  "version": "1.0.1",
+  "homepage": "https://github.com/Connectcomau/node-handlebars-precompiler",
   "keywords": [
     "handlebars mustache template html compiler"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/jwietelmann/node-handlebars-precompiler.git"
+    "url": "git://github.com/Connectcomau/node-handlebars-precompiler.git"
   },
   "engines": {
-    "node": ">=0.4.7"
+    "node": ">=0.6.0"
   },
   "dependencies": {
     "handlebars": "~1.0",
