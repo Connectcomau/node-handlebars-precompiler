@@ -72,7 +72,7 @@ function compile(opts) {
 	if (opts.watch) {
 		function compile_on_change(event, filename) {
 			console.log('[' + event + '] detected in ' + (filename ? filename : '[filename not supported]'));
-			compile(opts);
+			do_precompile(opts);
 		}
 
 		console.log('[watching] ' + opts.src);
