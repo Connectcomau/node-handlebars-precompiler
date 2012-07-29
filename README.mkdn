@@ -2,12 +2,12 @@
 
 Get the package: ```npm install handlebars-precompiler```
 
-This is how you might use it in an Express project:
+This is how you might use it in an Express project.
+Note you can use 'compile' instead of 'watch_dir' to just compile once on server start.
 
 ```javascript
 app.configure('development', function(){
-  hbsPrecompiler = require('handlebars-precompiler');
-  hbsPrecompiler.watchDir(
+  require('handlebars-precompiler').watch_dir(
     __dirname + "/views",
     __dirname + "/public/javascripts/templates.js",
     ['handlebars', 'hbs']
