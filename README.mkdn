@@ -1,23 +1,25 @@
 # Precompile Handlebars Template directories
 
-This is how you might use it in an Express project. You can use `compile` instead of `watch_dir` to just compile once on server start.
+This is how you might use it in an Express project.
 
 ```javascript
 app.configure('development', function(){
-  require('./lib/handlebars-precompiler').watch_dir(
-    __dirname + "/views",
-    __dirname + "/public/javascripts/templates.js",
-    ['handlebars', 'hbs']
-  );
+  require('./lib/ember-precompiler').compile({
+    src: __dirname + '/views', 
+    dest: __dirname + '/public/javascripts/templates.js',
+    extensions: ['handlebars', 'hbs'],
+    minify: true, //run result through uglify-js
+    watch: true, //recompile on file changes
+    template_name: function(t) { return t.replace(/\//, '-'); } //callback to modify the template names to whatever you like
+  });
 });
 ```
 
-In this example, we watch for changes to ```*.handlebars``` and ```*.hbs``` files in our views directory.
+In this example, we watch for changes to `*.handlebars` and `*.hbs` files in our views directory.
 When changes are made, precompilation is run on all Handlebars templates and exported to a single minified
 Javascript file.
 
-On the browser side, you will need to deploy the Handlebars runtime-only release.
-You could use the full release which includes a compiler, but your site will be faster if you don't.
+On the browser side, you will have to include ember.js before the templates file.
 
-Client-side versions of the templates will be named and stored in the ```Handlebars``` object according to their file paths,
-e.g. ```Handlebars.templates['users/show']```
+Client-side versions of the templates will be named and stored in the `Ember.TEMPLATES` object according to their file paths,
+e.g. `Ember.TEMPLATES['users/show']` you can change the template name using the `template_name` option above

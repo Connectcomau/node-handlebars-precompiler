@@ -2,130 +2,93 @@
 // Changed from command-line compiler to node module
 
 var fs = require('fs');
+var file = require('file');
 var handlebars = require('handlebars');
 var basename = require('path').basename;
 var uglify = require('uglify-js');
 
 function check_files(opts) {
-	(function(opts) {
-		if ( ! opts.templates.length) {
-			throw 'Must define at least one template or directory.';
-		}
+	try { fs.statSync(opts.src); } 
+	catch (err) { throw 'Unable to open src: "' + opts.src + '"'; }
+}
 
-		opts.templates.forEach(function(template) {
-			try {
-				fs.statSync(template);
-			} 
-			catch (err) {
-				throw 'Unable to open template file "' + template + '"';
+function process_template(template, root, opts, output) {
+	var stat = fs.statSync(template);
+
+	if (stat.isDirectory()) {
+		fs.readdirSync(template).map(function(file) {
+			var path = template + '/' + file;
+
+			if (opts.file_regex.test(path) || fs.statSync(path).isDirectory()) {
+				process_template(path, root || template, opts, output);
 			}
 		});
-	}(opts));	
+	} else {
+		var data = fs.readFileSync(template, 'utf8');
+
+		// Clean the template name
+		if ( ! root) template = basename(template);
+		else if (template.indexOf(root) === 0) template = template.substring(root.length+1);
+
+		if (typeof(opts.template_name) === 'function') template = opts.template_name(template);
+		template = template.replace(opts.file_regex, '');
+		output.push('\ntemplates[\'' + template + '\'] = template(' + handlebars.precompile(data) + ');\n');
+	}
 }
 
 function do_precompile(opts) {
 	//check all files first
 	check_files(opts);
 
-	var template = opts.templates[0];
 	var output = [];
 	output.push('(function() {\n  var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};\n');
 
-	function processTemplate(template, root) {
-		var stat = fs.statSync(template);
-
-		// make the filename regex user-overridable
-		var fileRegex = /\.handlebars$/;
-		if (opts.fileRegex) fileRegex = opts.fileRegex;
-		
-		if (stat.isDirectory()) {
-			fs.readdirSync(template).map(function(file) {
-				var path = template + '/' + file;
-
-				if (fileRegex.test(path) || fs.statSync(path).isDirectory()) {
-					processTemplate(path, root || template);
-				}
-			});
-		} else {
-			var data = fs.readFileSync(template, 'utf8');
-
-			// Clean the template name
-			if ( ! root) {
-				template = basename(template);
-			} 
-			else if (template.indexOf(root) === 0) {
-				template = template.substring(root.length+1);
-			}
-
-			template = template.replace(fileRegex, '');
-			output.push('templates[\'' + template + '\'] = template(' + handlebars.precompile(data) + ');\n');
-		}
-	}
-
-	opts.templates.forEach(function(template) {
-		processTemplate(template, opts.root);
-	});
+	process_template(opts.src, null, opts, output);
 
 	// Output the content
 	output.push('})();');
 	output = output.join('');
 
-	if (opts.min) {
+	if (opts.minify) {
 		var ast = uglify.parser.parse(output);
 		ast = uglify.uglify.ast_mangle(ast);
 		ast = uglify.uglify.ast_squeeze(ast);
 		output = uglify.uglify.gen_code(ast);
 	}
 
-	if (opts.output) {
-		fs.writeFileSync(opts.output, output, 'utf8');
-	} else {
-		return output;
-	}
+	if (opts.dest) fs.writeFileSync(opts.dest, output, 'utf8');
+
+	console.log('[compiled] ' + opts.dest);
+
+	return output;
 }
 
-function compile(dir, outfile, extensions) {
-	var regex = /\.handlebars$/;
-	if (extensions) {
-		regex = new RegExp('\.' + extensions.join('$|\.') + '$');
-	}
+function compile(opts) {
+	opts.file_regex = /\.handlebars$/;
+	if (opts.extensions) opts.file_regex = new RegExp('\.' + opts.extensions.join('$|\.') + '$');
 
-	console.log('[compiling] ' + outfile);
+	var result = do_precompile(opts);
 
-	return do_precompile({
-		templates: [dir],
-		output: outfile,
-		fileRegex: regex,
-		min: true
-	});
-}
+	if (opts.watch) {
+		function compile_on_change(event, filename) {
+			console.log('[' + event + '] detected in ' + (filename ? filename : '[filename not supported]'));
+			compile(opts);
+		}
 
-function watch_dir(dir, outfile, extensions) {
-	var fs = require('fs');
-	var file = require('file');
-	var regex = /\.handlebars$/;
-	var compileOnChange = function(event, filename) {
-		console.log('[' + event + '] detected in ' + (filename ? filename : '[filename not supported]'));
-		compile(dir, outfile, extensions);
-	}
+		console.log('[watching] ' + opts.src);
 
-	if (extensions) {
-		regex = new RegExp('\.' + extensions.join('$|\.') + '$');
-	}
+		file.walk(opts.src, function(_, dirPath, dirs, files) {
+			if ( ! files) throw 'No files to watch...'
 
-	console.log('[watching] ' + dir);
-
-	file.walk(dir, function(_, dirPath, dirs, files) {
-		if (files) {
 			for(var i = 0; i < files.length; i++) {
-				var file = files[i];
-				if (regex.test(file)) {
-					fs.watch(file, compileOnChange);
+				if (opts.file_regex.test(files[i])) {
+					fs.watch(files[i], compile_on_change);
 				}
 			}
-		}
-	});
+		});
+	}
+
+	return result;
 }
 
 exports.compile = compile
-exports.watch_dir = watch_dir
