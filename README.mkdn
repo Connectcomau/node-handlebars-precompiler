@@ -4,13 +4,13 @@ This is how you might use it in an Express project.
 
 ```javascript
 app.configure('development', function(){
-  require('./lib/ember-precompiler').compile({
+  require('./lib/handlebars-precompiler').compile({
     src: __dirname + '/views', 
     dest: __dirname + '/public/javascripts/templates.js',
     extensions: ['handlebars', 'hbs'],
     minify: true, //run result through uglify-js
     watch: true, //recompile on file changes
-    template_name: function(t) { return t.replace(/\//, '-'); } //callback to modify the template names to whatever you like
+    template_name: function(t) { return t.replace(/\//, '-'); } //callback to modify the template names
   });
 });
 ```
